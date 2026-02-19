@@ -1,0 +1,15 @@
+# Byte-compiled / optimized
+__pycache__/
+*.py[cod]
+
+# Env files / secrets
+.env
+.env.*
+
+# Local databases / logs
+*.db
+*.sqlite
+*.log
+
+# OS
+.DS_Store
