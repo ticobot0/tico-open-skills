@@ -72,6 +72,26 @@ def chunk(lst: list[dict], n: int) -> list[list[dict]]:
     return [lst[i : i + n] for i in range(0, len(lst), n)]
 
 
+def heuristic_category(description: str | None) -> str | None:
+    if not description:
+        return None
+    d = description.strip().upper()
+
+    # Shopping
+    if d.startswith("AMAZON") or d.startswith("SHOPEE") or d.startswith("MERCADOLIVRE"):
+        return "shopping"
+
+    # Delivery
+    if d.startswith("IFOOD") or d.startswith("IFD*") or d.startswith("IFD "):
+        return "delivery"
+
+    # Health
+    if d.startswith("DROGASIL") or d.startswith("DROGARIA"):
+        return "health"
+
+    return None
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--in", dest="in_path", required=True, help="Input parsed JSON")
@@ -92,45 +112,56 @@ def main() -> int:
 
     out_items: list[dict] = []
     for b in chunk(items, args.batch):
-        payload = [
-            {
-                "idx": i,
-                "posted_at": it.get("posted_at"),
-                "description": it.get("description_raw"),
-                "kind": it.get("kind"),
-                "direction": it.get("direction"),
-                "amount_minor": it.get("amount_minor"),
-                "currency": it.get("currency"),
-            }
-            for i, it in enumerate(b)
-        ]
+        # Pre-assign with heuristics; LLM classifies only the remaining ones.
+        fixed: dict[int, str] = {}
+        todo: list[dict] = []
+        for i, it in enumerate(b):
+            hcat = heuristic_category(it.get("description_raw"))
+            if hcat:
+                fixed[i] = hcat
+            else:
+                todo.append(
+                    {
+                        "idx": i,
+                        "posted_at": it.get("posted_at"),
+                        "description": it.get("description_raw"),
+                        "kind": it.get("kind"),
+                        "direction": it.get("direction"),
+                        "amount_minor": it.get("amount_minor"),
+                        "currency": it.get("currency"),
+                    }
+                )
 
-        prompt = (
-            SYSTEM
-            + "\n\nAllowed categories: ["
-            + allowed
-            + "]\n\nInput: "
-            + json.dumps(payload, ensure_ascii=False)
-            + "\n\nReturn JSON array of same length, each element: {\"idx\": <idx>, \"category\": <one of allowed>}"
-        )
+        cats_map: dict[int, str] = {}
+        if todo:
+            prompt = (
+                SYSTEM
+                + "\n\nAllowed categories: ["
+                + allowed
+                + "]\n\nInput: "
+                + json.dumps(todo, ensure_ascii=False)
+                + "\n\nReturn JSON array of same length, each element: {\"idx\": <idx>, \"category\": <one of allowed>}"
+            )
 
-        raw = run_agent(prompt, session_id=session_id)
-        try:
-            cats = json.loads(raw)
-        except Exception:
-            # If model returned extra text, fail fast.
-            raise SystemExit(f"Categorization returned non-JSON: {raw[:200]}")
+            raw = run_agent(prompt, session_id=session_id)
+            try:
+                cats = json.loads(raw)
+            except Exception:
+                raise SystemExit(f"Categorization returned non-JSON: {raw[:200]}")
 
-        if not isinstance(cats, list) or len(cats) != len(payload):
-            raise SystemExit("Categorization output length mismatch")
+            if not isinstance(cats, list) or len(cats) != len(todo):
+                raise SystemExit("Categorization output length mismatch")
+
+            for j, c in enumerate(cats):
+                idx = todo[j]["idx"]
+                cat = (c or {}).get("category")
+                if cat not in CATEGORIES:
+                    cat = "other"
+                cats_map[idx] = cat
 
         # apply
         for j, it in enumerate(b):
-            c = cats[j]
-            cat = (c or {}).get("category")
-            if cat not in CATEGORIES:
-                cat = "other"
-            it["category"] = cat
+            it["category"] = fixed.get(j) or cats_map.get(j) or "other"
             out_items.append(it)
 
     st["items"] = out_items
