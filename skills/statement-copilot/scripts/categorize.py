@@ -80,10 +80,34 @@ def heuristic_category(description: str | None) -> str | None:
     # Shopping
     if d.startswith("AMAZON") or d.startswith("SHOPEE") or d.startswith("MERCADOLIVRE"):
         return "shopping"
+    if d.startswith("AMERICANAS") or d.startswith("MAGALU") or d.startswith("KABUM") or d.startswith("ALIEXPRESS"):
+        return "shopping"
 
     # Delivery
     if d.startswith("IFOOD") or d.startswith("IFD*") or d.startswith("IFD "):
         return "delivery"
+    if d.startswith("RAPPI"):
+        return "delivery"
+
+    # Transport
+    if d.startswith("UBER") or d.startswith("99") or d.startswith("ALLPARK"):
+        return "transport"
+
+    # Fuel
+    if d.startswith("POSTO"):
+        return "fuel"
+
+    # Restaurants
+    if d.startswith("RESTAURANTE") or d.startswith("CHURRASC"):
+        return "restaurants"
+
+    # Entertainment
+    if d.startswith("CINEMARK") or d.startswith("SPOTIFY"):
+        return "entertainment"
+
+    # Subscriptions / Streaming
+    if d.startswith("NETFLIX") or d.startswith("DISNEY") or d.startswith("PRIMEVIDEO"):
+        return "subscriptions"
 
     # Health
     if d.startswith("DROGASIL") or d.startswith("DROGARIA"):
