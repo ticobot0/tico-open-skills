@@ -77,44 +77,69 @@ class PdfOpenResult:
     error: str | None = None
 
 
-def try_open_pdf(pdf_path: Path, password: str | None) -> PdfOpenResult:
+def tmp_dir() -> Path:
+    return data_dir() / "tmp"
+
+
+def unlocked_pdf_path_for(hash_hex: str) -> Path:
+    return tmp_dir() / f"{hash_hex}.unlocked.pdf"
+
+
+def ensure_unlocked_pdf(pdf_path: Path, password: str | None) -> tuple[PdfOpenResult, Path]:
+    """Return a path that is safe to read (original if not encrypted, else a temp unlocked copy)."""
+
     try:
-        from pypdf import PdfReader  # type: ignore
+        from pypdf import PdfReader, PdfWriter  # type: ignore
     except Exception:
-        return PdfOpenResult(
-            encrypted=False,
-            ok=False,
-            error="Missing dependency: pypdf. Create a venv and install: pip install pypdf",
+        return (
+            PdfOpenResult(
+                encrypted=False,
+                ok=False,
+                error="Missing dependency: pypdf. Create a venv and install: pip install pypdf",
+            ),
+            pdf_path,
         )
 
     reader = PdfReader(str(pdf_path))
     if not reader.is_encrypted:
-        return PdfOpenResult(encrypted=False, ok=True)
+        return (PdfOpenResult(encrypted=False, ok=True), pdf_path)
 
-    # Encrypted
     if not password:
-        return PdfOpenResult(
-            encrypted=True,
-            ok=False,
-            error=(
-                "PDF is password-protected. Re-run with --password or set STATEMENT_PDF_PASSWORD."
+        return (
+            PdfOpenResult(
+                encrypted=True,
+                ok=False,
+                error="PDF is password-protected. Re-run with --password or set STATEMENT_PDF_PASSWORD.",
             ),
+            pdf_path,
         )
 
     try:
         res = reader.decrypt(password)
-        # pypdf returns 0 when password fails
         if res == 0:
-            return PdfOpenResult(
-                encrypted=True,
-                ok=False,
-                error="Invalid PDF password (decrypt returned 0).",
+            return (
+                PdfOpenResult(
+                    encrypted=True,
+                    ok=False,
+                    error="Invalid PDF password (decrypt returned 0).",
+                ),
+                pdf_path,
             )
-        # Touch root to ensure it's really decrypted
-        _ = len(reader.pages)
-        return PdfOpenResult(encrypted=True, ok=True)
+
+        # Write unlocked copy (idempotent by sha256)
+        tmp_dir().mkdir(parents=True, exist_ok=True)
+        h = sha256_file(pdf_path)
+        out = unlocked_pdf_path_for(h)
+        if not out.exists():
+            writer = PdfWriter()
+            for page in reader.pages:
+                writer.add_page(page)
+            with out.open("wb") as f:
+                writer.write(f)
+
+        return (PdfOpenResult(encrypted=True, ok=True), out)
     except Exception as e:
-        return PdfOpenResult(encrypted=True, ok=False, error=f"Failed to decrypt PDF: {e}")
+        return (PdfOpenResult(encrypted=True, ok=False, error=f"Failed to decrypt PDF: {e}"), pdf_path)
 
 
 def main() -> int:
@@ -143,20 +168,25 @@ def main() -> int:
     # DB init (safe even if verify-only)
     ensure_db()
 
-    # Verify / unlock
-    r = try_open_pdf(pdf_path, password)
+    # Verify / unlock (write unlocked temp copy when needed)
+    r, readable_path = ensure_unlocked_pdf(pdf_path, password)
     if not r.ok:
         print(f"ERROR: {r.error}", file=sys.stderr)
         return 3
 
     file_hash = sha256_file(pdf_path)
     enc = "encrypted" if r.encrypted else "not-encrypted"
-    print(f"OK: PDF opened ({enc}); sha256={file_hash[:12]}…")
+    if readable_path != pdf_path:
+        print(
+            f"OK: PDF opened ({enc}); sha256={file_hash[:12]}…; unlocked_copy={readable_path}")
+    else:
+        print(f"OK: PDF opened ({enc}); sha256={file_hash[:12]}…")
 
     if args.verify_only:
         return 0
 
-    print("NOTE: parsing not implemented yet (next step). Use --verify-only for now.")
+    # Next step: parse from readable_path
+    print(f"NOTE: parsing not implemented yet. Ready-to-parse path: {readable_path}")
     return 0
 
 
