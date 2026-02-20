@@ -2,6 +2,9 @@
 __pycache__/
 *.py[cod]
 
+# Python venv
+.venv/
+
 # Env files / secrets
 .env
 .env.*

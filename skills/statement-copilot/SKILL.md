@@ -9,10 +9,11 @@ Lab skill for a B2C personal finance MVP.
 
 ## What it does (MVP)
 
-- Ingest credit card statements (initially Nubank/Itaú via CSV/PDF exports)
+- Ingest credit card statements (initially Nubank/Itaú via PDF exports)
+- Detect password-protected PDFs and require a password to unlock
 - Normalize items into a canonical schema
 - Store statements + items in SQLite (single DB)
-- Generate a concise markdown summary (totals, categories, recurring charges, refunds/fees like IOF as separate lines)
+- Generate a concise markdown summary (totals, categories, recurring charges; IOF modeled as its own fee line)
 
 ## Data storage
 
@@ -28,8 +29,12 @@ By default, store data under:
 - Ingest a statement file:
 
 ```bash
-python3 {baseDir}/scripts/ingest.py --issuer nubank --file /path/to/statement.pdf
-python3 {baseDir}/scripts/ingest.py --issuer itau --file /path/to/statement.csv
+python3 {baseDir}/scripts/ingest.py --issuer itau --file /path/to/statement.pdf --verify-only
+
+# password-protected PDF
+python3 {baseDir}/scripts/ingest.py --issuer itau --file /path/to/statement.pdf --password "1234" --verify-only
+# or via env
+STATEMENT_PDF_PASSWORD="1234" python3 {baseDir}/scripts/ingest.py --issuer itau --file /path/to/statement.pdf --verify-only
 ```
 
 - Summarize latest statement:
