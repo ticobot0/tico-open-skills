@@ -185,8 +185,21 @@ def main() -> int:
     if args.verify_only:
         return 0
 
-    # Next step: parse from readable_path
-    print(f"NOTE: parsing not implemented yet. Ready-to-parse path: {readable_path}")
+    # Phase 1: extract header fields (Itaú first)
+    if args.issuer.lower() == "itau":
+        try:
+            from itau_extract import extract_text_first_pages, extract_header  # type: ignore
+
+            txt = extract_text_first_pages(readable_path, max_pages=2)
+            h = extract_header(txt)
+            print(
+                "HEADER itau:",
+                {"holder": h.card_holder, "due_date": h.due_date, "total_minor": h.total_minor, "currency": h.currency},
+            )
+        except Exception as e:
+            print(f"WARN: failed to extract Itaú header: {e}", file=sys.stderr)
+
+    print("NOTE: item parsing not implemented yet (phase 2).")
     return 0
 
 
