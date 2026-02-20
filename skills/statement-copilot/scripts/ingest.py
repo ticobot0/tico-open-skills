@@ -209,6 +209,7 @@ def main() -> int:
         import subprocess, json
 
         json_out = data_dir() / f"{file_hash}.parsed.json"
+        categorized_out = data_dir() / f"{file_hash}.categorized.json"
         session_id = f"statement-copilot-{args.issuer}-{file_hash[:12]}"
         p = subprocess.run(
             [
@@ -227,7 +228,7 @@ def main() -> int:
         )
         json_out.write_text(p.stdout.strip() + "\n", encoding="utf-8")
 
-        # Validate + summarize
+        # Validate parse output
         p2 = subprocess.run(
             [
                 sys.executable,
@@ -246,7 +247,49 @@ def main() -> int:
             print(f"Raw JSON saved at: {json_out}")
             return 5
 
-        # Insert
+        # Categorize items (LLM-assisted)
+        pc = subprocess.run(
+            [
+                sys.executable,
+                str(Path(__file__).parent / "categorize.py"),
+                "--issuer",
+                args.issuer,
+                "--in",
+                str(json_out),
+                "--out",
+                str(categorized_out),
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        if pc.returncode != 0:
+            print("ERROR: categorization failed", file=sys.stderr)
+            print(pc.stdout)
+            print(pc.stderr, file=sys.stderr)
+            print(f"Raw JSON saved at: {json_out}")
+            return 8
+
+        # Validate + summarize categorized output
+        p2c = subprocess.run(
+            [
+                sys.executable,
+                str(Path(__file__).parent / "validate_and_summarize.py"),
+                "--json-file",
+                str(categorized_out),
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        if p2c.returncode != 0:
+            print("ERROR: categorized output failed validation.", file=sys.stderr)
+            print(p2c.stdout)
+            print(p2c.stderr, file=sys.stderr)
+            print(f"Categorized JSON saved at: {categorized_out}")
+            return 9
+
+        # Insert categorized
         p3 = subprocess.run(
             [
                 sys.executable,
@@ -254,7 +297,7 @@ def main() -> int:
                 "--issuer",
                 args.issuer,
                 "--json-file",
-                str(json_out),
+                str(categorized_out),
             ],
             check=False,
             capture_output=True,
@@ -269,7 +312,7 @@ def main() -> int:
         # Print summary
         print(p3.stdout.strip())
         print("\n--- SUMMARY ---\n")
-        print(p2.stdout.strip())
+        print(p2c.stdout.strip())
         return 0
 
     except subprocess.CalledProcessError as e:

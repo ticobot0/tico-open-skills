@@ -94,14 +94,32 @@ def summarize(doc: dict) -> str:
     expenses_sorted = sorted(expenses, key=lambda it: it.get("amount_minor", 0), reverse=True)
     top = expenses_sorted[:5]
 
+    # category rollup (top 6 by spend)
+    cat_totals: dict[str, int] = {}
+    for it in expenses:
+        cat = it.get("category") or "uncategorized"
+        if not isinstance(cat, str):
+            cat = "uncategorized"
+        cat_totals[cat] = cat_totals.get(cat, 0) + int(it.get("amount_minor"))
+    top_cats = sorted(cat_totals.items(), key=lambda kv: kv[1], reverse=True)[:6]
+
     lines = []
     lines.append(f"Issuer: {st.get('issuer')}")
     lines.append(f"Due date: {due}")
     lines.append(f"Total: {currency} {fmt_minor(total)}" if isinstance(total, int) else f"Total: {total}")
     lines.append("")
+    if top_cats:
+        lines.append("Top categories:")
+        for cat, amt in top_cats:
+            lines.append(f"- {cat}: {currency} {fmt_minor(amt)}")
+        lines.append("")
+
     lines.append("Top expenses:")
     for it in top:
-        lines.append(f"- {it.get('posted_at')} | {it.get('description_raw')} | {it.get('currency')} {fmt_minor(int(it.get('amount_minor')))}")
+        cat = it.get("category") or "uncategorized"
+        lines.append(
+            f"- {it.get('posted_at')} | {it.get('description_raw')} | {cat} | {it.get('currency')} {fmt_minor(int(it.get('amount_minor')))}"
+        )
 
     return "\n".join(lines)
 
