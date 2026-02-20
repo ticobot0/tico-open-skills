@@ -11,9 +11,9 @@ Lab skill for a B2C personal finance MVP.
 
 - Ingest credit card statements (initially Nubank/Itaú via PDF exports)
 - Detect password-protected PDFs and require a password to unlock
-- Normalize items into a canonical schema
-- Store statements + items in SQLite (single DB)
-- Generate a concise markdown summary (totals, categories, recurring charges; IOF modeled as its own fee line)
+- Extract full statement data using LLM-first parsing (OpenClaw model engine)
+- Validate JSON strictly and store statements + items in SQLite (single DB)
+- Generate a concise markdown summary (totals, top expenses; IOF modeled as its own fee line)
 
 ## Data storage
 

@@ -185,22 +185,98 @@ def main() -> int:
     if args.verify_only:
         return 0
 
-    # Phase 1: extract header fields (Itaú first)
-    if args.issuer.lower() == "itau":
-        try:
-            from itau_extract import extract_text_first_pages, extract_header  # type: ignore
+    # LLM-first parsing pipeline:
+    # 1) extract PDF text (all pages)
+    # 2) ask OpenClaw agent to return strict JSON
+    # 3) validate, insert into SQLite
+    # 4) print a concise summary
 
-            txt = extract_text_first_pages(readable_path, max_pages=2)
-            h = extract_header(txt)
-            print(
-                "HEADER itau:",
-                {"holder": h.card_holder, "due_date": h.due_date, "total_minor": h.total_minor, "currency": h.currency},
-            )
-        except Exception as e:
-            print(f"WARN: failed to extract Itaú header: {e}", file=sys.stderr)
+    try:
+        from extract_pdf_text import extract_text  # type: ignore
 
-    print("NOTE: item parsing not implemented yet (phase 2).")
-    return 0
+        # Keep prompt size reasonable for LLM-first: start with first 3 pages.
+        txt = extract_text(readable_path, max_pages=3)
+    except Exception as e:
+        print(f"ERROR: failed to extract PDF text: {e}", file=sys.stderr)
+        return 4
+
+    data_dir().mkdir(parents=True, exist_ok=True)
+    text_out = data_dir() / f"{file_hash}.txt"
+    text_out.write_text(txt, encoding="utf-8")
+
+    # Call LLM parser
+    try:
+        import subprocess, json
+
+        json_out = data_dir() / f"{file_hash}.parsed.json"
+        session_id = f"statement-copilot-{args.issuer}-{file_hash[:12]}"
+        p = subprocess.run(
+            [
+                sys.executable,
+                str(Path(__file__).parent / "llm_parse.py"),
+                "--issuer",
+                args.issuer,
+                "--text-file",
+                str(text_out),
+                "--session-id",
+                session_id,
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        json_out.write_text(p.stdout.strip() + "\n", encoding="utf-8")
+
+        # Validate + summarize
+        p2 = subprocess.run(
+            [
+                sys.executable,
+                str(Path(__file__).parent / "validate_and_summarize.py"),
+                "--json-file",
+                str(json_out),
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        if p2.returncode != 0:
+            print("ERROR: LLM output failed validation.", file=sys.stderr)
+            print(p2.stdout)
+            print(p2.stderr, file=sys.stderr)
+            print(f"Raw JSON saved at: {json_out}")
+            return 5
+
+        # Insert
+        p3 = subprocess.run(
+            [
+                sys.executable,
+                str(Path(__file__).parent / "insert_sqlite.py"),
+                "--issuer",
+                args.issuer,
+                "--json-file",
+                str(json_out),
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        if p3.returncode != 0:
+            print("ERROR: failed to insert into SQLite", file=sys.stderr)
+            print(p3.stdout)
+            print(p3.stderr, file=sys.stderr)
+            return 6
+
+        # Print summary
+        print(p3.stdout.strip())
+        print("\n--- SUMMARY ---\n")
+        print(p2.stdout.strip())
+        return 0
+
+    except subprocess.CalledProcessError as e:
+        print("ERROR: llm_parse failed", file=sys.stderr)
+        print(e.stdout)
+        print(e.stderr, file=sys.stderr)
+        return 7
 
 
 if __name__ == "__main__":
