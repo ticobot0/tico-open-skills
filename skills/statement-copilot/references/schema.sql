@@ -21,6 +21,9 @@ CREATE TABLE IF NOT EXISTS sources (
   FOREIGN KEY(account_id) REFERENCES accounts(id)
 );
 
+-- Idempotency: the same account + same file hash should map to a single source.
+CREATE UNIQUE INDEX IF NOT EXISTS uidx_sources_account_hash ON sources(account_id, content_hash);
+
 CREATE TABLE IF NOT EXISTS statements (
   id TEXT PRIMARY KEY,
   account_id TEXT NOT NULL,
@@ -35,6 +38,9 @@ CREATE TABLE IF NOT EXISTS statements (
   FOREIGN KEY(source_id) REFERENCES sources(id),
   UNIQUE(account_id, period_start, period_end)
 );
+
+-- Idempotency: allow linking a source to at most one statement.
+CREATE UNIQUE INDEX IF NOT EXISTS uidx_statements_source_id ON statements(source_id);
 
 CREATE TABLE IF NOT EXISTS statement_items (
   id TEXT PRIMARY KEY,
