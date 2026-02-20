@@ -194,8 +194,16 @@ def main() -> int:
     try:
         from extract_pdf_text import extract_text  # type: ignore
 
-        # Keep prompt size reasonable for LLM-first: start with first 3 pages.
-        txt = extract_text(readable_path, max_pages=3)
+        # Keep prompt size reasonable for LLM-first.
+        # Start with first 3 pages, but if we don't see transaction keywords,
+        # fall back to extracting the full PDF.
+        if args.issuer.lower() == "nubank":
+            # Nubank PDFs often put the transaction list later (e.g. page 5+).
+            txt = extract_text(readable_path, max_pages=None)
+        else:
+            txt = extract_text(readable_path, max_pages=3)
+            if "TRANSA" not in txt.upper() and "LANÇAMENT" not in txt.upper():
+                txt = extract_text(readable_path, max_pages=None)
     except Exception as e:
         print(f"ERROR: failed to extract PDF text: {e}", file=sys.stderr)
         return 4
