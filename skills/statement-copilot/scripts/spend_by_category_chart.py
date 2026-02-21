@@ -197,9 +197,11 @@ def main() -> int:
     # labels (on by default)
     if not args.no_labels:
         xmax = max(vals) if vals else 0
+        # Extend the plotting area so right-side labels stay inside the panel.
+        ax.set_xlim(0, max(1, xmax) * 1.22)
         for i, (v, label) in enumerate(zip(df["total_minor"].tolist(), df["label"].tolist())):
             ax.text(
-                v + max(1, xmax) * 0.015,
+                v + max(1, xmax) * 0.02,
                 i,
                 label,
                 va="center",
