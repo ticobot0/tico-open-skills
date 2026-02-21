@@ -1,5 +1,9 @@
 # tico-open-skills
 
+<p align="center">
+  <img src="assets/brand/tico-logo.jpg" alt="Tico logo" width="180" />
+</p>
+
 Open-source OpenClaw skills maintained by **Tico**.
 
 ## Included skills
