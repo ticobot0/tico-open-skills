@@ -56,6 +56,9 @@ def set_theme(theme: dict | None = None) -> dict:
                 "axes.grid": True,
                 "axes.axisbelow": True,
                 "legend.frameon": False,
+                # no bar outlines
+                "patch.edgecolor": "none",
+                "patch.linewidth": 0,
             },
         )
     except ModuleNotFoundError:
@@ -77,6 +80,9 @@ def set_theme(theme: dict | None = None) -> dict:
                 "ytick.color": ui.get("text_secondary", "#B6BBC6"),
                 "grid.color": ui.get("grid", "#3B3E45"),
                 "axes.titlecolor": ui.get("text_primary", "#F2F4F8"),
+                # no bar outlines
+                "patch.edgecolor": "none",
+                "patch.linewidth": 0,
             }
         )
     except ModuleNotFoundError:

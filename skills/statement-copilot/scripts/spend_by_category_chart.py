@@ -54,6 +54,16 @@ def main() -> int:
         help="Category to highlight (e.g. groceries) or 'top1' (default)",
     )
     ap.add_argument("--top", type=int, default=8, help="Top N categories (rest grouped as 'other')")
+    ap.add_argument(
+        "--show-labels",
+        action="store_true",
+        help="Show value/% labels at the end of bars (off by default for minimal style)",
+    )
+    ap.add_argument(
+        "--show-subtitle",
+        action="store_true",
+        help="Show subtitle with totals/top-N (off by default for minimal style)",
+    )
     args = ap.parse_args()
 
     start, end = parse_month(args.month)
@@ -141,6 +151,8 @@ def main() -> int:
         legend=False,
         ax=ax,
         orient="h",
+        edgecolor="none",
+        linewidth=0,
     )
 
     # Title = conclusion-ish; keep it generic but useful
@@ -149,16 +161,33 @@ def main() -> int:
         title += f" ({args.account})"
     ax.set_title(title)
 
-    subtitle = f"Total: {fmt_brl(total_minor_all)} • Top {top_n}{' + outros' if rest_minor>0 else ''}"
-    ax.text(0, 1.02, subtitle, transform=ax.transAxes, ha="left", va="bottom", color=ui.get("text_secondary", "#B6BBC6"), fontsize=10)
+    if args.show_subtitle:
+        subtitle = f"Total: {fmt_brl(total_minor_all)} • Top {top_n}{' + outros' if rest_minor>0 else ''}"
+        ax.text(
+            0,
+            1.02,
+            subtitle,
+            transform=ax.transAxes,
+            ha="left",
+            va="bottom",
+            color=ui.get("text_secondary", "#B6BBC6"),
+            fontsize=10,
+        )
 
     ax.set_xlabel("")
     ax.set_ylabel("")
 
-    # labels
-    xmax = max(vals) if vals else 0
-    for i, (v, label) in enumerate(zip(df["total_minor"].tolist(), df["label"].tolist())):
-        ax.text(v + max(1, xmax) * 0.015, i, label, va="center", color=ui.get("text_primary", "#F2F4F8"))
+    # labels (optional)
+    if args.show_labels:
+        xmax = max(vals) if vals else 0
+        for i, (v, label) in enumerate(zip(df["total_minor"].tolist(), df["label"].tolist())):
+            ax.text(
+                v + max(1, xmax) * 0.015,
+                i,
+                label,
+                va="center",
+                color=ui.get("text_primary", "#F2F4F8"),
+            )
 
     # Minimal grid
     ax.grid(True, axis="x", alpha=0.25)
