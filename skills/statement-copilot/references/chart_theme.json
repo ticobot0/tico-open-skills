@@ -1,0 +1,30 @@
+{
+  "ui": {
+    "style": "dark",
+    "bg": "#2F3136",
+    "panel": "#26282D",
+    "grid": "#3B3E45",
+    "text_primary": "#F2F4F8",
+    "text_secondary": "#B6BBC6",
+    "axes": "#8E94A3"
+  },
+  "accents": {
+    "primary": "#22D3EE",
+    "secondary": "#7C3AED",
+    "warning": "#F59E0B"
+  },
+  "category_colors": {
+    "subscriptions": "#7C3AED",
+    "transport": "#22D3EE",
+    "groceries": "#34D399",
+    "restaurants": "#F59E0B",
+    "shopping": "#A78BFA",
+    "delivery": "#84CC16",
+    "health": "#FB7185",
+    "education": "#60A5FA",
+    "fees_taxes": "#94A3B8",
+    "interest": "#94A3B8",
+    "other": "#6B7280",
+    "uncategorized": "#6B7280"
+  }
+}

@@ -7,3 +7,5 @@ Scripts in this skill:
 - categorize.py: LLM-assisted categorization + heuristic overrides
 - validate_and_summarize.py: strict-ish schema validation + concise summary output
 - insert_sqlite.py: upsert into SQLite (idempotent)
+- chart_theme.py: apply the default dark theme (seaborn-first) + category palette
+- spend_by_category_chart.py: generate a spend-by-category chart PNG
