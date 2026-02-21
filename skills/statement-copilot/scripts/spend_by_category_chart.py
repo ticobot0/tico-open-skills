@@ -55,14 +55,19 @@ def main() -> int:
     )
     ap.add_argument("--top", type=int, default=8, help="Top N categories (rest grouped as 'other')")
     ap.add_argument(
-        "--show-labels",
+        "--no-labels",
         action="store_true",
-        help="Show value/% labels at the end of bars (off by default for minimal style)",
+        help="Hide value/% labels at the end of bars (labels are on by default)",
     )
     ap.add_argument(
         "--show-subtitle",
         action="store_true",
-        help="Show subtitle with totals/top-N (off by default for minimal style)",
+        help="Show subtitle with totals/top-N (off by default)",
+    )
+    ap.add_argument(
+        "--hide-x-axis",
+        action="store_true",
+        help="Hide X axis ticks/labels/spine (recommended for minimalist charts)",
     )
     args = ap.parse_args()
 
@@ -135,7 +140,10 @@ def main() -> int:
     mono_dim = ui.get("mono_bar_dim", "#7A8191")
 
     if args.style == "mono":
+        # Default: monochrome bars; one accent highlight.
         df["color"] = df["category"].map(lambda c: accent if c == highlight else mono_dim)
+        # Keep grouped "other" slightly dimmer but not black.
+        df.loc[df["category"] == "other", "color"] = mono_dim
     else:
         df["color"] = df["category"].map(lambda c: palette.get(c, palette.get("other", mono_dim)))
 
@@ -177,8 +185,8 @@ def main() -> int:
     ax.set_xlabel("")
     ax.set_ylabel("")
 
-    # labels (optional)
-    if args.show_labels:
+    # labels (on by default)
+    if not args.no_labels:
         xmax = max(vals) if vals else 0
         for i, (v, label) in enumerate(zip(df["total_minor"].tolist(), df["label"].tolist())):
             ax.text(
@@ -189,10 +197,13 @@ def main() -> int:
                 color=ui.get("text_primary", "#F2F4F8"),
             )
 
-    # Minimal grid
-    ax.grid(True, axis="x", alpha=0.25)
-    ax.grid(False, axis="y")
-    sns.despine(ax=ax, left=True, bottom=False)
+    # Minimal grid / axes
+    ax.grid(False)
+    sns.despine(ax=ax, left=True, bottom=True)
+
+    if args.hide_x_axis:
+        ax.get_xaxis().set_visible(False)
+        ax.spines["bottom"].set_visible(False)
 
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
