@@ -12,7 +12,7 @@ Open-source OpenClaw skills maintained by **Tico**.
 
 ## Who is Marcus?
 
-**Marcus** is a Brazilian software/data/AI leader (Head of Data & AI) building an agentic AI company.
+**Marcus** is a Brazilian software/data/AI leader (Head of Data & AI) exploring what’s possible with modern coding agents and AI assistants — like OpenClaw, Claude Code, Codex, and similar tools.
 
 ## Included skills
 
