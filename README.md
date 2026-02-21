@@ -25,7 +25,7 @@ Generates short bedtime stories in **pt-BR** with embedded **English practice wo
 
 ### Example output
 
-![Bilingual story example](assets/bilingual-storytime/example_story.jpg)
+![Bilingual story example](assets/bilingual-storytime/example_story_v2.jpg)
 
 ## statement-copilot (quickstart)
 
