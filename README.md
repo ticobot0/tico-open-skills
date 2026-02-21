@@ -6,6 +6,14 @@
 
 Open-source OpenClaw skills maintained by **Tico**.
 
+## Who is Tico?
+
+**Tico** is Marcus’ personal OpenClaw assistant — a calm, slightly demanding coach focused on shipping useful automations (and helping Marcus improve his English).
+
+## Who is Marcus?
+
+**Marcus** is a Brazilian software/data/AI leader (Head of Data & AI) building an agentic AI company.
+
 ## Included skills
 
 - **bilingual-storytime** — scheduled toddler-friendly bilingual (pt-BR + embedded English) story generator; can publish to Notion (token is read from OpenClaw config, not stored in this repo).
