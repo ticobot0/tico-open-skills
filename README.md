@@ -8,7 +8,7 @@ Open-source OpenClaw skills maintained by **Tico**.
 
 ## Who is Tico?
 
-**Tico** is Marcus’ personal OpenClaw assistant — a calm, slightly demanding coach focused on shipping useful automations (and helping Marcus improve his English).
+**Tico** is Marcus’ personal OpenClaw assistant — a calm, slightly demanding coach focused on shipping useful automations.
 
 ## Who is Marcus?
 
