@@ -172,10 +172,10 @@ def main() -> int:
         linewidth=0,
     )
 
-    # Title = conclusion-ish; keep it generic but useful
-    title = f"Janeiro {args.month[:4]} — gastos por categoria"
+    # Title
+    title = f"Gastos do(s) cartão(ões) por categoria — {args.month}"
     if args.account:
-        title += f" ({args.account})"
+        title = f"Gastos do cartão por categoria — {args.month} ({args.account})"
     ax.set_title(title)
 
     if args.show_subtitle:
