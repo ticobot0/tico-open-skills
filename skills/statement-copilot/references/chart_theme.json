@@ -6,7 +6,9 @@
     "grid": "#3B3E45",
     "text_primary": "#F2F4F8",
     "text_secondary": "#B6BBC6",
-    "axes": "#8E94A3"
+    "axes": "#8E94A3",
+    "mono_bar": "#B6BBC6",
+    "mono_bar_dim": "#7A8191"
   },
   "accents": {
     "primary": "#22D3EE",

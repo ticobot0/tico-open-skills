@@ -6,6 +6,7 @@ This reads from the SQLite DB and outputs a PNG.
 
 Example:
   python3 spend_by_category_chart.py --month 2026-01 --out /tmp/spend.png
+  python3 spend_by_category_chart.py --month 2026-01 --style mono --highlight groceries --out /tmp/spend.png
 """
 
 from __future__ import annotations
@@ -46,6 +47,13 @@ def main() -> int:
     ap.add_argument("--month", required=True, help="YYYY-MM")
     ap.add_argument("--out", required=True)
     ap.add_argument("--account", default=None, help="Optional: acc:nubank / acc:itau")
+    ap.add_argument("--style", default="mono", choices=["mono", "category"], help="Color style")
+    ap.add_argument(
+        "--highlight",
+        default="top1",
+        help="Category to highlight (e.g. groceries) or 'top1' (default)",
+    )
+    ap.add_argument("--top", type=int, default=8, help="Top N categories (rest grouped as 'other')")
     args = ap.parse_args()
 
     start, end = parse_month(args.month)
@@ -80,42 +88,87 @@ def main() -> int:
         raise SystemExit("No rows for that month")
 
     theme = set_theme()
+    ui = theme.get("ui") or {}
+    accents = theme.get("accents") or {}
     palette = category_palette(theme)
 
-    cats = [r["category"] for r in rows]
-    vals = [int(r["total_minor"]) for r in rows]
+    # top N + group rest into 'other'
+    rows_sorted = list(rows)
+    total_minor_all = sum(int(r["total_minor"]) for r in rows_sorted)
+
+    top_n = max(1, int(args.top))
+    top_rows = rows_sorted[:top_n]
+    rest = rows_sorted[top_n:]
+    rest_minor = sum(int(r["total_minor"]) for r in rest)
+
+    cats = [r["category"] for r in top_rows]
+    vals = [int(r["total_minor"]) for r in top_rows]
+    if rest_minor > 0:
+        cats.append("other")
+        vals.append(rest_minor)
 
     import pandas as pd  # type: ignore
     import seaborn as sns  # type: ignore
     import matplotlib.pyplot as plt  # type: ignore
 
     df = pd.DataFrame({"category": cats, "total_minor": vals})
-    df["total"] = df["total_minor"].map(fmt_brl)
+    df["pct"] = df["total_minor"].map(lambda v: (v / total_minor_all) if total_minor_all else 0.0)
+    df["label"] = df.apply(lambda r: f"{fmt_brl(int(r.total_minor))}  ({r.pct*100:.0f}%)", axis=1)
 
-    # map bar colors by category, fallback to palette default
-    colors = [palette.get(c, palette.get("other", "#6B7280")) for c in df["category"].tolist()]
+    # highlight decision
+    highlight = args.highlight
+    if highlight == "top1":
+        highlight = df.iloc[0]["category"]
 
+    accent = accents.get("primary", "#22D3EE")
+    mono = ui.get("mono_bar", "#B6BBC6")
+    mono_dim = ui.get("mono_bar_dim", "#7A8191")
+
+    if args.style == "mono":
+        df["color"] = df["category"].map(lambda c: accent if c == highlight else mono_dim)
+    else:
+        df["color"] = df["category"].map(lambda c: palette.get(c, palette.get("other", mono_dim)))
+
+    # seaborn: avoid deprecated palette usage by using hue
     fig, ax = plt.subplots(figsize=(10, 6))
-    sns.barplot(data=df, y="category", x="total_minor", ax=ax, palette=colors, orient="h")
+    sns.barplot(
+        data=df,
+        y="category",
+        x="total_minor",
+        hue="category",
+        palette=dict(zip(df["category"].tolist(), df["color"].tolist())),
+        dodge=False,
+        legend=False,
+        ax=ax,
+        orient="h",
+    )
 
-    ax.set_title(f"Spend by category — {args.month}")
+    # Title = conclusion-ish; keep it generic but useful
+    title = f"Janeiro {args.month[:4]} — gastos por categoria"
+    if args.account:
+        title += f" ({args.account})"
+    ax.set_title(title)
+
+    subtitle = f"Total: {fmt_brl(total_minor_all)} • Top {top_n}{' + outros' if rest_minor>0 else ''}"
+    ax.text(0, 1.02, subtitle, transform=ax.transAxes, ha="left", va="bottom", color=ui.get("text_secondary", "#B6BBC6"), fontsize=10)
+
     ax.set_xlabel("")
     ax.set_ylabel("")
 
     # labels
-    xmax = max(vals)
-    for i, (v, label) in enumerate(zip(vals, df["total"].tolist())):
-        ax.text(v + xmax * 0.01, i, label, va="center")
+    xmax = max(vals) if vals else 0
+    for i, (v, label) in enumerate(zip(df["total_minor"].tolist(), df["label"].tolist())):
+        ax.text(v + max(1, xmax) * 0.015, i, label, va="center", color=ui.get("text_primary", "#F2F4F8"))
 
-    # make it clean
-    ax.grid(True, axis="x")
+    # Minimal grid
+    ax.grid(True, axis="x", alpha=0.25)
     ax.grid(False, axis="y")
     sns.despine(ax=ax, left=True, bottom=False)
 
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
     fig.tight_layout()
-    fig.savefig(out, dpi=160)
+    fig.savefig(out, dpi=180)
     print(f"OK: wrote {out}")
     return 0
 
