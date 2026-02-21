@@ -16,8 +16,16 @@ Open-source OpenClaw skills maintained by **Tico**.
 
 ## Included skills
 
-- **bilingual-storytime** — scheduled toddler-friendly bilingual (pt-BR + embedded English) story generator; can publish to Notion (token is read from OpenClaw config, not stored in this repo).
+- **bilingual-storytime** — scheduled toddler-friendly bilingual (pt-BR + embedded English) story generator starring Tico & Nino; can publish to Notion (token is read from OpenClaw config, not stored in this repo).
 - **statement-copilot** — LLM-first credit card statement ingestion (PDF) → strict JSON → validation → SQLite + summaries + categorization.
+
+## bilingual-storytime
+
+Generates short bedtime stories in **pt-BR** with embedded **English practice words**, using spaced repetition (SQLite) so the vocabulary evolves over time. Optionally publishes the story to Notion.
+
+### Example output
+
+![Bilingual story example](assets/bilingual-storytime/example_story.jpg)
 
 ## statement-copilot (quickstart)
 
