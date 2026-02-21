@@ -11,6 +11,7 @@ from pathlib import Path
 
 ALLOWED_DIRECTIONS = {"inflow", "outflow"}
 ALLOWED_KINDS = {"purchase", "refund", "fee", "interest", "adjustment", "payment"}
+ALLOWED_ITEM_TYPES = {"transaction", "statement_flow"}
 
 
 def is_iso_date(s: str) -> bool:
@@ -61,6 +62,10 @@ def validate(doc: dict) -> ValidationResult:
         ic = it.get("currency")
         if not isinstance(ic, str) or len(ic) != 3:
             errors.append(f"item[{i}].currency must be ISO-4217")
+        itype = it.get("item_type")
+        if itype is not None and itype not in ALLOWED_ITEM_TYPES:
+            errors.append(f"item[{i}].item_type invalid")
+
         dr = it.get("direction")
         if dr not in ALLOWED_DIRECTIONS:
             errors.append(f"item[{i}].direction invalid")
@@ -89,12 +94,19 @@ def summarize(doc: dict) -> str:
         sign = "-" if x < 0 else ""
         return sign + s
 
-    # top 5 expenses
-    expenses = [it for it in items if it.get("direction") == "outflow" and isinstance(it.get("amount_minor"), int)]
+    def is_tx(it: dict) -> bool:
+        # Default to transaction if field missing (backward compatibility)
+        return it.get("item_type", "transaction") == "transaction"
+
+    tx_items = [it for it in items if isinstance(it, dict) and is_tx(it)]
+    flow_items = [it for it in items if isinstance(it, dict) and not is_tx(it)]
+
+    # top 5 expenses (transactions only)
+    expenses = [it for it in tx_items if it.get("direction") == "outflow" and isinstance(it.get("amount_minor"), int)]
     expenses_sorted = sorted(expenses, key=lambda it: it.get("amount_minor", 0), reverse=True)
     top = expenses_sorted[:5]
 
-    # category rollup (top 6 by spend)
+    # category rollup (top 6 by spend) - transactions only
     cat_totals: dict[str, int] = {}
     for it in expenses:
         cat = it.get("category") or "uncategorized"
@@ -114,12 +126,26 @@ def summarize(doc: dict) -> str:
             lines.append(f"- {cat}: {currency} {fmt_minor(amt)}")
         lines.append("")
 
-    lines.append("Top expenses:")
+    lines.append("Top expenses (transactions):")
     for it in top:
         cat = it.get("category") or "uncategorized"
         lines.append(
             f"- {it.get('posted_at')} | {it.get('description_raw')} | {cat} | {it.get('currency')} {fmt_minor(int(it.get('amount_minor')))}"
         )
+
+    # Show a small summary of statement flows
+    if flow_items:
+        lines.append("")
+        lines.append("Statement flows (top 5 by absolute value):")
+        flows_sorted = sorted(
+            [it for it in flow_items if isinstance(it.get('amount_minor'), int)],
+            key=lambda it: abs(int(it.get('amount_minor'))),
+            reverse=True,
+        )[:5]
+        for it in flows_sorted:
+            lines.append(
+                f"- {it.get('posted_at')} | {it.get('description_raw')} | {it.get('kind')} | {it.get('direction')} | {it.get('currency')} {fmt_minor(int(it.get('amount_minor')))}"
+            )
 
     return "\n".join(lines)
 

@@ -217,6 +217,7 @@ def main() -> int:
         import subprocess, json
 
         json_out = data_dir() / f"{file_hash}.parsed.json"
+        post_out = data_dir() / f"{file_hash}.post.json"
         categorized_out = data_dir() / f"{file_hash}.categorized.json"
         session_id = f"statement-copilot-{args.issuer}-{file_hash[:12]}"
         p = subprocess.run(
@@ -255,6 +256,26 @@ def main() -> int:
             print(f"Raw JSON saved at: {json_out}")
             return 5
 
+        # Post-process (generic, bank-agnostic) to enforce item_type + kind/direction
+        pp = subprocess.run(
+            [
+                sys.executable,
+                str(Path(__file__).parent / "postprocess_items.py"),
+                "--in",
+                str(json_out),
+                "--out",
+                str(post_out),
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        if pp.returncode != 0:
+            print("ERROR: postprocess failed", file=sys.stderr)
+            print(pp.stdout)
+            print(pp.stderr, file=sys.stderr)
+            return 10
+
         # Categorize items (LLM-assisted)
         pc = subprocess.run(
             [
@@ -263,7 +284,7 @@ def main() -> int:
                 "--issuer",
                 args.issuer,
                 "--in",
-                str(json_out),
+                str(post_out),
                 "--out",
                 str(categorized_out),
             ],

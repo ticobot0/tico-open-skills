@@ -35,6 +35,7 @@ Schema:
     "currency": "ISO-4217",
     "items": [
       {
+        "item_type": "transaction|statement_flow",
         "posted_at": "YYYY-MM-DD|null",
         "description_raw": "string",
         "merchant_norm": "string|null",
@@ -55,6 +56,10 @@ Schema:
 Rules:
 - Amounts are integers in minor units (e.g. cents).
 - If a field is unknown, use null (not empty string) for nullable fields.
+- Set item_type:
+  - transaction: actual purchases/withdrawals/refunds (the spending list)
+  - statement_flow: payments, carried balances, financing, fees/interest (statement bookkeeping)
+- If unsure, prefer item_type="statement_flow".
 - IOF should be represented as a separate item with kind="fee" and direction="outflow".
 - For domestic BRL purchases, orig_* and fx_rate should be null.
 """
