@@ -132,6 +132,9 @@ def main() -> int:
     import matplotlib.pyplot as plt  # type: ignore
 
     df = pd.DataFrame({"category": cats, "total_minor": vals})
+    # Ensure bars are always ordered by spend (desc), even after merging "other".
+    df = df.sort_values("total_minor", ascending=False).reset_index(drop=True)
+
     df["pct"] = df["total_minor"].map(lambda v: (v / total_minor_all) if total_minor_all else 0.0)
     df["label"] = df.apply(lambda r: f"{fmt_brl(int(r.total_minor))}  ({r.pct*100:.0f}%)", axis=1)
 
