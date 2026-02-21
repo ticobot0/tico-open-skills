@@ -119,8 +119,13 @@ def main() -> int:
     cats = [r["category"] for r in top_rows]
     vals = [int(r["total_minor"]) for r in top_rows]
     if rest_minor > 0:
-        cats.append("other")
-        vals.append(rest_minor)
+        # If "other" is already present (as a real category), merge rest into it.
+        if "other" in cats:
+            idx = cats.index("other")
+            vals[idx] += rest_minor
+        else:
+            cats.append("other")
+            vals.append(rest_minor)
 
     import pandas as pd  # type: ignore
     import seaborn as sns  # type: ignore
@@ -157,6 +162,7 @@ def main() -> int:
         palette=dict(zip(df["category"].tolist(), df["color"].tolist())),
         dodge=False,
         legend=False,
+        errorbar=None,  # disable confidence interval line
         ax=ax,
         orient="h",
         edgecolor="none",
