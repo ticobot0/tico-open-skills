@@ -48,3 +48,7 @@ python3 {baseDir}/scripts/summarize.py --issuer nubank --period 2026-02
 - Multi-currency supported per item via `currency` + optional origin fields (`orig_currency`, `orig_amount_minor`, `fx_rate`).
 - IOF is modeled as its own statement item (kind=`fee`).
 - Secrets: none. Any future Open Banking tokens must come from OpenClaw config/env, never committed.
+
+## TODO (roadmap)
+
+- [ ] Add reconciliation check: warn if statement `total` doesn’t match the computed sum of items (transactions + statement flows).
