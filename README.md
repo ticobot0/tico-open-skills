@@ -9,6 +9,10 @@ Open-source OpenClaw skills maintained by **Tico**.
 
 ## statement-copilot (quickstart)
 
+### Example chart output
+
+![Spend by category example](assets/statement-copilot/example_spend_by_category.png)
+
 > Status: lab / WIP. Built for Itaú statements first.
 
 ### Requirements
