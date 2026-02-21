@@ -37,11 +37,7 @@ python3 {baseDir}/scripts/ingest.py --issuer itau --file /path/to/statement.pdf 
 STATEMENT_PDF_PASSWORD="1234" python3 {baseDir}/scripts/ingest.py --issuer itau --file /path/to/statement.pdf --verify-only
 ```
 
-- Summarize latest statement:
-
-```bash
-python3 {baseDir}/scripts/summarize.py --issuer nubank --period 2026-02
-```
+- Summaries are printed during `ingest.py` (and the parsed/categorized JSON is saved under `{workspace}/data/statement-copilot/`).
 
 ## Notes
 
